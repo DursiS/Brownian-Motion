@@ -94,7 +94,7 @@ class BrownianMotion:
         expt = self.expectation()
         y2 = [expt for i in range(self._steps_taken)]
         name = self.__class__.__name__
-        plt.plot(x1[:-1], y2, c="#00008B", label=f"Expected End {name}")
+        plt.plot(x1[:-1], y2, c="#00008B", label=f"E(X) {name}")
 
         # Root and Legend
         time_passed = self._steps_taken * self.time_step
@@ -140,14 +140,16 @@ class GBrownianMotion(BrownianMotion):
 
 
 if __name__ == "__main__":
-    bm = BrownianMotion(1 / 2, 0.001, 0.001)
-    gbm = GBrownianMotion(1 / 2, 0.001, 0.001)
+    dt, dz = 0.001, 0.001
+    theta = 1 / 2
     n = 10000
 
+    bm = BrownianMotion(theta, dt, dz)
     bm.run(n)
     bm.visualize()
     bm.visualize_stats()
 
+    gbm = GBrownianMotion(theta, dt, dz)
     gbm.run(n)
     gbm.visualize()
     gbm.visualize_stats()
