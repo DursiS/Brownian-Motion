@@ -101,7 +101,7 @@ class BrownianMotion:
 
 
 if __name__ == "__main__":
-    bm = BrownianMotion(1 / 2, 0.0005, 0.0005)
+    bm = BrownianMotion(1 / 3, 0.001, 0.001)
     bm.run(10000)
     bm.visualize()
     plt.show()
