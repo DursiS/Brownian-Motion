@@ -1,6 +1,4 @@
-import random
 import Discrete_Distributions
-import math
 import matplotlib.pyplot as plt
 
 
