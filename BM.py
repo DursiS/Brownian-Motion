@@ -154,23 +154,23 @@ def get_average_pnl(matrix: list[list[tuple[float, float]]]) -> float:
     total = 0
     for path in matrix:
         total += path[-1][1]
-    return total / len(matrix)
+    return round(total / len(matrix), 4)
 
 
-def expected_shortfall(matrix: list[list[tuple[float, float]]]) -> float:
+def get_expected_shortfall(matrix: list[list[tuple[float, float]]]) -> float:
     """Return the Expected Shortfall of this BrownianMotion,
     as the average of the worst losses along these paths.
 
     Precondition: There's at least one endpoint below or equal to VaR
     """
     endpoints = [path[-1][1] for path in matrix]
-    var = np.percentile(95, endpoints)
+    var = np.percentile(endpoints, 95)
     total, i = 0, 0
     for end in endpoints:
         if end <= var:
             total += end
             i += 1
-    return total / i
+    return round(total / i, 4)
 
 
 class GBrownianMotion(BrownianMotion):
@@ -217,17 +217,18 @@ if __name__ == "__main__":
     bm.run(_n)
     bm.visualize()
     bm.visualize_mean()
+    plt.legend()
+    plt.show()
 
     if False:  # Verify Variance and Mean
         expected_std = (bm.mu * _n) ** (1 / 2)
         print(f"Got Var: {round(bm.var(), 4)}, Expected: {bm.mu * _n})")
         print(f"Got Std Dev: {round(bm.std(), 4)}, Expected: {expected_std}")
 
-    if False:  # Average PNL of <m> paths
+    if False:  # Average PNL and Expected Shortfall of <m> paths
         m = 100
         paths = get_path_matrix(100, _n, _theta, _dt, _dz)
         pnl = get_average_pnl(paths)
+        es = get_expected_shortfall(paths)
         print(f"Got PNL: {pnl}, Expected: {bm.mu * _n}")
-
-    plt.legend()
-    plt.show()
+        print(f"Expected Shortfall: {es}")
