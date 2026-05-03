@@ -1,4 +1,4 @@
-import Discrete_Distributions
+import Distributions
 import matplotlib.pyplot as plt
 import math
 import numpy as np
@@ -23,7 +23,7 @@ class BrownianMotion:
     h_step: float
     time_step: float
     path: list[tuple[float, float]]
-    _steps_taken = int
+    steps_taken = int
 
     def __init__(
         self,
@@ -47,7 +47,7 @@ class BrownianMotion:
         self.path = [(0, 0)]
         self.mu = mu
         self.sigma = sigma
-        self._steps_taken = 0
+        self.steps_taken = 0
 
     def step(self) -> None:
         """Move one time_step forward"""
@@ -60,7 +60,7 @@ class BrownianMotion:
         new_pos = (self.position[0] + self.time_step), (self.position[1] + step)
         self.position = new_pos
         self.path.append(new_pos)
-        self._steps_taken += 1
+        self.steps_taken += 1
 
     def run(self, n: int) -> None:
         """Move <n> unit-times forward"""
@@ -71,16 +71,21 @@ class BrownianMotion:
         """Return the expected final height given
         len(self.steps) steps were taken."""
 
-        time_passed = self._steps_taken * self.time_step
+        time_passed = self.steps_taken * self.time_step
         return self.mu * time_passed
 
     def var(self) -> float:
-        """Return the variance of this random walk"""
-        pass
+        """Return the variance in the endpoint of this BrownianMotion."""
+
+        x1 = [point[1] for point in self.path]
+        mean = sum(x1) / len(x1)
+        x2 = [point**2 for point in x1]
+        mean_sq = sum(x2) / len(x2)
+        return mean_sq - mean
 
     def std(self) -> float:
         """Return the standard deviation of this random walk"""
-        pass
+        return self.var() ** (1 / 2)
 
     def visualize(self) -> None:
         """Plot this BrownianMotion."""
@@ -88,21 +93,63 @@ class BrownianMotion:
         y = [item[1] for item in self.path]
         plt.plot(x, y)
 
-    def visualize_stats(self) -> None:
+    def visualize_mean(self) -> None:
         """Plot the stats for the <number>th RandomWalk after <n> steps."""
         # Mean
         x1 = [item[0] for item in self.path]
         expt = self.expectation()
-        y2 = [expt for i in range(self._steps_taken)]
+        y2 = [expt for i in range(self.steps_taken)]
         name = self.__class__.__name__
         plt.plot(x1[:-1], y2, c="#00008B", label=f"E(X) {name}")
 
-        # Root and Legend
-        time_passed = self._steps_taken * self.time_step
-        y2 = [time_passed ** (1 / 2) for i in range(self._steps_taken)]
-        y3 = [-(time_passed ** (1 / 2)) for i in range(self._steps_taken)]
+    def visualize_root(self) -> None:
+        """Plot -+Root(n) as 2 constant linear equations
+        to have an idea where this BrownianMotion will lie.
+        """
+        x1 = [item[0] for item in self.path]
+        time_passed = self.steps_taken * self.time_step
+        y2 = [time_passed ** (1 / 2) for i in range(self.steps_taken)]
+        y3 = [-(time_passed ** (1 / 2)) for i in range(self.steps_taken)]
         plt.plot(x1[:-1], y2, c="#FF0000", label="Root(t)")
         plt.plot(x1[:-1], y3, c="#FF0000")
+
+    def visualize_var_std(self) -> None:
+        """Add var and std to the legend."""
+        raise NotImplementedError
+
+
+def copy_bm(bm: BrownianMotion) -> BrownianMotion:
+    """Return a copy of this BrownianMotion."""
+    new_bm = BrownianMotion(bm.theta, bm.h_step, bm.time_step)
+    new_bm.path = bm.path[:]
+    new_bm.steps_taken = bm.steps_taken
+    new_bm.mu = bm.mu
+    new_bm.sigma = bm.sigma
+    return new_bm
+
+
+def path_matrix(m: int, n: int, theta: float, dt: float, dz: float) -> list[list[tuple[float, float]]]:
+    """Return a (m x n) matrix with m paths, each with n steps."""
+
+    matrix = []
+    for i in range(m):
+        bmi = BrownianMotion(theta, dt, dz)
+        bmi.run(n)
+        matrix.append(bmi.path)
+    return matrix
+
+
+def get_average_pnl(matrix: list[list[tuple[float, float]]]) -> float:
+    """Get the average PNL of endpoints in <matrix>.
+
+    Precondition: len(matrix) > 0
+    """
+
+    total = 0
+    for path in matrix:
+        total += path[-1][1]
+    return total / len(matrix)
+
 
 
 class GBrownianMotion(BrownianMotion):
@@ -128,7 +175,7 @@ class GBrownianMotion(BrownianMotion):
     def step(self) -> None:
         """Move one time_step forward"""
 
-        shock = Discrete_Distributions.Normal(0, 1)
+        shock = Distributions.Normal(0, 1)
         noise = self.sigma * (self.time_step ** (1 / 2)) * shock.sample()
         step_factor = math.exp(
             (self.mu - (1 / 2) * (self.sigma**2)) * self.time_step + noise
@@ -137,23 +184,25 @@ class GBrownianMotion(BrownianMotion):
         new_pos = (self.position[0] + self.time_step), (self.position[1] * step_factor)
         self.position = new_pos
         self.path.append(new_pos)
-        self._steps_taken += 1
+        self.steps_taken += 1
 
 
 if __name__ == "__main__":
-    dt, dz = 0.001, 0.001
-    theta = 1 / 2
-    n = 10000
+    _dt, _dz = 0.001, 0.001
+    _theta = 1 / 2
+    _n = 10000
 
-    bm = BrownianMotion(theta, dt, dz)
-    bm.run(n)
+    bm = BrownianMotion(_theta, _dt, _dz)
+    bm.run(_n)
     bm.visualize()
-    bm.visualize_stats()
+    bm.visualize_mean()
 
-    gbm = GBrownianMotion(theta, dt, dz)
-    gbm.run(n)
-    gbm.visualize()
-    gbm.visualize_stats()
+    # Verify Variance and Mean:
+    if False:
+        expected_var = bm.mu * _n
+        expected_std = expected_var ** (1 / 2)
+        print(f"Got Var: {round(bm.var(), 4)}, Expected: {expected_var})")
+        print(f"Got Std Dev: {round(bm.std(), 4)}, Expected: {expected_std}")
 
     plt.legend()
     plt.show()
