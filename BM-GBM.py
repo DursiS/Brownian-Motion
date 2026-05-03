@@ -1,6 +1,7 @@
 import Discrete_Distributions
 import matplotlib.pyplot as plt
 import math
+import numpy as np
 
 
 class BrownianMotion:
@@ -51,9 +52,9 @@ class BrownianMotion:
     def step(self) -> None:
         """Move one time_step forward"""
 
-        shock = Discrete_Distributions.Normal(0, 1)
+        random_shock = np.random.normal(self.mu, self.sigma)
         drift = self.mu * self.time_step
-        noise = self.sigma * (self.time_step ** (1 / 2)) * shock.sample()
+        noise = self.sigma * (self.time_step ** (1 / 2)) * random_shock
         step = drift + noise
 
         new_pos = (self.position[0] + self.time_step), (self.position[1] + step)
