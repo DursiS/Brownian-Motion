@@ -113,9 +113,13 @@ class BrownianMotion:
         plt.plot(x1[:-1], y2, c="#FF0000", label="Root(t)")
         plt.plot(x1[:-1], y3, c="#FF0000")
 
-    def visualize_var_std(self) -> None:
+    def visualize_variance_std(self) -> None:
         """Add var and std to the legend."""
         raise NotImplementedError
+
+    def value_at_risk(self) -> float:
+        """Return the Value-At-Risk (VaR) of this BrownianMotion"""
+        return np.percentile(self.path, 95)
 
 
 def copy_bm(bm: BrownianMotion) -> BrownianMotion:
@@ -128,7 +132,9 @@ def copy_bm(bm: BrownianMotion) -> BrownianMotion:
     return new_bm
 
 
-def path_matrix(m: int, n: int, theta: float, dt: float, dz: float) -> list[list[tuple[float, float]]]:
+def get_path_matrix(
+    m: int, n: int, theta: float, dt: float, dz: float
+) -> list[list[tuple[float, float]]]:
     """Return a (m x n) matrix with m paths, each with n steps."""
 
     matrix = []
@@ -150,6 +156,21 @@ def get_average_pnl(matrix: list[list[tuple[float, float]]]) -> float:
         total += path[-1][1]
     return total / len(matrix)
 
+
+def expected_shortfall(matrix: list[list[tuple[float, float]]]) -> float:
+    """Return the Expected Shortfall of this BrownianMotion,
+    as the average of the worst losses along these paths.
+
+    Precondition: There's at least one endpoint below or equal to VaR
+    """
+    endpoints = [path[-1][1] for path in matrix]
+    var = np.percentile(95, endpoints)
+    total, i = 0, 0
+    for end in endpoints:
+        if end <= var:
+            total += end
+            i += 1
+    return total / i
 
 
 class GBrownianMotion(BrownianMotion):
@@ -190,19 +211,23 @@ class GBrownianMotion(BrownianMotion):
 if __name__ == "__main__":
     _dt, _dz = 0.001, 0.001
     _theta = 1 / 2
-    _n = 10000
+    _n = 1000
 
     bm = BrownianMotion(_theta, _dt, _dz)
     bm.run(_n)
     bm.visualize()
     bm.visualize_mean()
 
-    # Verify Variance and Mean:
-    if False:
-        expected_var = bm.mu * _n
-        expected_std = expected_var ** (1 / 2)
-        print(f"Got Var: {round(bm.var(), 4)}, Expected: {expected_var})")
+    if False:  # Verify Variance and Mean
+        expected_std = (bm.mu * _n) ** (1 / 2)
+        print(f"Got Var: {round(bm.var(), 4)}, Expected: {bm.mu * _n})")
         print(f"Got Std Dev: {round(bm.std(), 4)}, Expected: {expected_std}")
+
+    if False:  # Average PNL of <m> paths
+        m = 100
+        paths = get_path_matrix(100, _n, _theta, _dt, _dz)
+        pnl = get_average_pnl(paths)
+        print(f"Got PNL: {pnl}, Expected: {bm.mu * _n}")
 
     plt.legend()
     plt.show()
