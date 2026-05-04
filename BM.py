@@ -91,7 +91,7 @@ class BrownianMotion:
         """Plot this BrownianMotion."""
         x = [item[0] for item in self.path]
         y = [item[1] for item in self.path]
-        plt.plot(x, y)
+        plt.plot(x, y, lw=0.5, alpha=0.5)
 
     def visualize_mean(self) -> None:
         """Plot the stats for the <number>th RandomWalk after <n> steps."""
@@ -213,12 +213,15 @@ if __name__ == "__main__":
     _theta = 1 / 2
     _n = 1000
 
-    bm = BrownianMotion(_theta, _dt, _dz)
-    bm.run(_n)
-    bm.visualize()
-    bm.visualize_mean()
-    plt.legend()
-    plt.show()
+    if False:  # Plot 20 BM paths
+
+        for i in range(20):
+            bmi = BrownianMotion(_theta, _dt, _dz)
+            bmi.run(_n)
+            bmi.visualize()
+
+        plt.legend()
+        plt.show()
 
     if False:  # Verify Variance and Mean
         expected_std = (bm.mu * _n) ** (1 / 2)
