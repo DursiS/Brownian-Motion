@@ -77,15 +77,6 @@ class BrownianMotion:
         expt, std = self.expectation(), self.std()
         return expt - (3 * std), expt + (3 * std)
 
-    def estimate_probability(self) -> float:
-        """Return the realized probability of stepping up.
-        """
-        total = 0
-        for point in self.path:
-            if point[1] > 0:
-                total += 1
-        return total / len(self.path)
-
     def var(self) -> float:
         """Return the variance in the endpoint of this BrownianMotion."""
 
@@ -144,16 +135,52 @@ def copy_bm(bm: BrownianMotion) -> BrownianMotion:
     new_bm.sigma = bm.sigma
     return new_bm
 
-def p_confidence_interval(k: int) -> tuple[float, float]:
-    """Return an interval in which the True/Theoretical
-    probability of stepping up is almost surely to be.
-    By doing <k> Monte Carlo Simulations to approximate p.
-    Which by LLN itself and it's variance convergences for large n."""
 
-    matrix = get_path_matrix()
-    p = self.estimate_probability()
-    std = (p * (1 - p))/ ** (1/2)
-    return
+# def estimate_probability(bm: BrownianMotion) -> float:
+#     """Return the realized probability of stepping up."""
+#     total = 0
+#     for point in bm.path:
+#         if point[1] > 0:
+#             total += 1
+#     return total / len(bm.path)
+#
+#
+# def p_confidence_interval(m: int, n: int, dt: float, dz: float) -> tuple[float, float]:
+#     """Return an interval in which the True/Theoretical
+#     probability of stepping up is almost surely to be.
+#     By doing <k> Monte Carlo Simulations to approximate p.
+#     Each Simulation
+#     Which by LLN itself and it's variance convergences for large n."""
+#
+#     matrix = get_path_matrix(m, n, dt, dz)
+#     total = 0
+#     for bm in matrix:
+#         total += estimate_probability(bm)
+#     average = total / len(matrix)
+
+
+def get_average_point(
+    i: int, matrix: list[list[tuple[float, float]]]
+) -> tuple[float, float]:
+    """Helper function to get_average_path
+    Return the average of point <i> of paths in <matrix>,
+    starting from 0 for the origin.
+    """
+    total = 0
+    for path in matrix:
+        total += path[i][1]
+    return matrix[0][i][0], (total / len(matrix[0][0]))
+
+
+def get_average_path(
+    matrix: list[list[tuple[float, float]]]
+) -> list[tuple[float, float]]:
+    """Return the average path of Brownian Motions of this matrix,"""
+    average = []
+    for i in range(len(matrix[0])):
+        average.append(get_average_point(i, matrix))
+    return average[1:]
+
 
 def get_path_matrix(
     m: int, n: int, dt: float, dz: float
@@ -232,6 +259,13 @@ class GBrownianMotion(BrownianMotion):
 if __name__ == "__main__":
     _dt, _dz = 0.001, 0.001
     _n = 1000
+
+    if False:  # Simulate an average path
+        paths = get_path_matrix(100, _n, _dt, _dz)
+        y = get_average_path(paths)
+        x = [i * _dt for i in range(_n)]
+        plt.plot(x, y, label="Average")
+        plt.show()
 
     if False:  # Compare a GBM to BM
         bm = BrownianMotion(_dt, _dz)
