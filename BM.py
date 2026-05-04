@@ -91,7 +91,8 @@ class BrownianMotion:
         """Plot this BrownianMotion."""
         x = [item[0] for item in self.path]
         y = [item[1] for item in self.path]
-        plt.plot(x, y, lw=0.5, alpha=0.5)
+        name = self.__class__.__name__
+        plt.plot(x, y, lw=0.5, alpha=0.5, label=name)
 
     def visualize_mean(self) -> None:
         """Plot the stats for the <number>th RandomWalk after <n> steps."""
@@ -196,8 +197,8 @@ class GBrownianMotion(BrownianMotion):
     def step(self) -> None:
         """Move one time_step forward"""
 
-        shock = Distributions.Normal(0, 1)
-        noise = self.sigma * (self.time_step ** (1 / 2)) * shock.sample()
+        shock = np.random.normal(self.mu, self.sigma)
+        noise = self.sigma * (self.time_step ** (1 / 2)) * shock
         step_factor = math.exp(
             (self.mu - (1 / 2) * (self.sigma**2)) * self.time_step + noise
         )
@@ -213,14 +214,25 @@ if __name__ == "__main__":
     _theta = 1 / 2
     _n = 1000
 
-    if False:  # Plot 20 BM paths
+    if False:  # Compare a GBM to BM
+        bm = BrownianMotion(_theta, _dt, _dz)
+        bm.run(_n)
+        bm.visualize()
+        bm.visualize_mean()
 
+        gbm = GBrownianMotion(_theta, _dt, _dz)
+        gbm.run(_n)
+        gbm.visualize()
+        gbm.visualize_mean()
+
+        plt.legend()
+        plt.show()
+
+    if False:  # Plot 20 BM paths
         for i in range(20):
             bmi = BrownianMotion(_theta, _dt, _dz)
             bmi.run(_n)
             bmi.visualize()
-
-        plt.legend()
         plt.show()
 
     if False:  # Verify Variance and Mean
