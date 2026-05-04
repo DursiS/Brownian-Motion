@@ -9,7 +9,6 @@ class BrownianMotion:
 
     Public Attributes:
         - position: The net change of all steps from origin 0.0
-        - theta: The probability of stepping up
         - h_step: How much height changes for each time_step taken
         - time_step: How much time it takes for each step
         - path: A history of all positions, right-most being current position
@@ -19,7 +18,6 @@ class BrownianMotion:
     """
 
     position: tuple[float, float]
-    theta: float
     h_step: float
     time_step: float
     path: list[tuple[float, float]]
@@ -27,7 +25,6 @@ class BrownianMotion:
 
     def __init__(
         self,
-        theta: float,
         h_step: float,
         time_step: float,
         mu: float = 0,
@@ -38,10 +35,8 @@ class BrownianMotion:
         Preconditions:
             - h_step > 0
             - time_step > 0
-            - theta > 0
         """
         self.position = 0.0, 0.0
-        self.theta = theta
         self.h_step = h_step
         self.time_step = time_step
         self.path = [(0, 0)]
@@ -73,6 +68,23 @@ class BrownianMotion:
 
         time_passed = self.steps_taken * self.time_step
         return self.mu * time_passed
+
+    def expt_confidence_interval(self) -> tuple[float, float]:
+        """Return an interval in which the True/Theoretical
+        expected value is almost surely to be.
+        (i.e. within 3 Std Dev.)"""
+
+        expt, std = self.expectation(), self.std()
+        return expt - (3 * std), expt + (3 * std)
+
+    def estimate_probability(self) -> float:
+        """Return the realized probability of stepping up.
+        """
+        total = 0
+        for point in self.path:
+            if point[1] > 0:
+                total += 1
+        return total / len(self.path)
 
     def var(self) -> float:
         """Return the variance in the endpoint of this BrownianMotion."""
@@ -125,22 +137,32 @@ class BrownianMotion:
 
 def copy_bm(bm: BrownianMotion) -> BrownianMotion:
     """Return a copy of this BrownianMotion."""
-    new_bm = BrownianMotion(bm.theta, bm.h_step, bm.time_step)
+    new_bm = BrownianMotion(bm.h_step, bm.time_step)
     new_bm.path = bm.path[:]
     new_bm.steps_taken = bm.steps_taken
     new_bm.mu = bm.mu
     new_bm.sigma = bm.sigma
     return new_bm
 
+def p_confidence_interval(k: int) -> tuple[float, float]:
+    """Return an interval in which the True/Theoretical
+    probability of stepping up is almost surely to be.
+    By doing <k> Monte Carlo Simulations to approximate p.
+    Which by LLN itself and it's variance convergences for large n."""
+
+    matrix = get_path_matrix()
+    p = self.estimate_probability()
+    std = (p * (1 - p))/ ** (1/2)
+    return
 
 def get_path_matrix(
-    m: int, n: int, theta: float, dt: float, dz: float
+    m: int, n: int, dt: float, dz: float
 ) -> list[list[tuple[float, float]]]:
     """Return a (m x n) matrix with m paths, each with n steps."""
 
     matrix = []
     for i in range(m):
-        bmi = BrownianMotion(theta, dt, dz)
+        bmi = BrownianMotion(dt, dz)
         bmi.run(n)
         matrix.append(bmi.path)
     return matrix
@@ -178,7 +200,6 @@ class GBrownianMotion(BrownianMotion):
 
     def __init__(
         self,
-        theta: float,
         h_step: float,
         time_step: float,
         mu: float = 0,
@@ -189,9 +210,8 @@ class GBrownianMotion(BrownianMotion):
         Preconditions:
             - h_step > 0
             - time_step > 0
-            - theta > 0
         """
-        super().__init__(theta, h_step, time_step, mu, sigma)
+        super().__init__(h_step, time_step, mu, sigma)
         self.position = 0, 1
 
     def step(self) -> None:
@@ -211,16 +231,15 @@ class GBrownianMotion(BrownianMotion):
 
 if __name__ == "__main__":
     _dt, _dz = 0.001, 0.001
-    _theta = 1 / 2
     _n = 1000
 
     if False:  # Compare a GBM to BM
-        bm = BrownianMotion(_theta, _dt, _dz)
+        bm = BrownianMotion(_dt, _dz)
         bm.run(_n)
         bm.visualize()
         bm.visualize_mean()
 
-        gbm = GBrownianMotion(_theta, _dt, _dz)
+        gbm = GBrownianMotion(_dt, _dz)
         gbm.run(_n)
         gbm.visualize()
         gbm.visualize_mean()
@@ -230,7 +249,7 @@ if __name__ == "__main__":
 
     if False:  # Plot 20 BM paths
         for i in range(20):
-            bmi = BrownianMotion(_theta, _dt, _dz)
+            bmi = BrownianMotion(_dt, _dz)
             bmi.run(_n)
             bmi.visualize()
         plt.show()
@@ -242,7 +261,7 @@ if __name__ == "__main__":
 
     if False:  # Average PNL and Expected Shortfall of <m> paths
         m = 100
-        paths = get_path_matrix(100, _n, _theta, _dt, _dz)
+        paths = get_path_matrix(100, _n, _dt, _dz)
         pnl = get_average_pnl(paths)
         es = get_expected_shortfall(paths)
         print(f"Got PNL: {pnl}, Expected: {bm.mu * _n}")
