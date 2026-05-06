@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import scipy
-from numpy import ndarray
+from numpy import ndarray, dtype, float64
 
 import math
 from BM import BrownianMotion
@@ -67,12 +67,8 @@ def get_returns(ticker: str) -> ndarray:
 
 def get_realized_vol(returns: ndarray) -> float:
     """Return the annual standard deviation of <ticker>"""
-    return np.std(returns) * np.sqrt(252)
-
-
-def get_returns_mean(returns: ndarray) -> float:
-    """Return the annual mean of returns from <data>."""
-    return returns.mean()
+    rv = np.std(returns) * np.sqrt(252)
+    return round(rv, 4)
 
 
 def get_price_call(returns: ndarray, K: float, r: float, T: float) -> float:
@@ -91,34 +87,44 @@ def black_scholes_d1(S: float, K: float, T: float, r: float, sigma: float) -> fl
     r: risk-free interest rate
     sigma: volatility
     """
-    d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+    d1 = (math.log(max(S / K, 0.0000001)) + (r + 0.5 * sigma**2) * T) / (
+        sigma * math.sqrt(T)
+    )
     return d1
 
 
 def get_implied_vol(returns: ndarray, K: float, r: float, T: float) -> float:
     """Return the implied volatility sigma,
     such that ModelPrice(sigma) = ObservedPrice."""
-    c = get_price_call(returns, K, r, T)
+
     realized_vol = get_realized_vol(returns)
+    d1 = np.array([black_scholes_d1(S, K, T, r, realized_vol) for S in returns[1:]])
+    d1 = np.array(list(d1))
+    vol = np.linspace((realized_vol * 0.8), (realized_vol * 1.2), 250)
 
-    d1 = np.ndarray([black_scholes_d1(S, K, T, r, realized_vol) for S in returns])
-    vol = np.arange((realized_vol * 0.8), (realized_vol * 1.2), 0.001)
+    model_prices = K * np.exp(d1 * vol * np.sqrt(T) - (r + 0.5 * vol**2) * T)
+    dp = np.array(returns[1:]) - model_prices
 
-    model_prices = K * math.exp(d1 * vol * math.sqrt(T) - (r + 0.5 * vol**2) * T)
-    iv = min(vol[np.abs(returns - model_prices) < 0.1])
-    return iv
+    iv = min(vol[np.abs(dp) < 0.1])
+    return round(iv, 4)
 
 
 if __name__ == "__main__":
     tick = "SPY"
     _dt = 1 / 252
 
+    if True:  # Compare RV to IV
+        returns = get_returns(tick)
+        rv = get_realized_vol(returns)
+        iv = get_implied_vol(returns, 500, 0.1, 1)
+        print(f"IV: {iv}, RV: {rv}")
+
     if False:  # Simulate return distribution
-        data = get_returns(tick)
+        returns = get_returns(tick)
         gbm = GBrownianMotion(
             _dt,
-            get_returns_mean(data),
-            get_realized_vol(data),
+            returns.mean(),
+            get_realized_vol(returns),
         )
 
         data = gbm.simulate_paths(1, 10000)
