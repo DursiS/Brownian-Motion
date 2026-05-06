@@ -1,6 +1,4 @@
-import Distributions
 import matplotlib.pyplot as plt
-import math
 import numpy as np
 
 
@@ -9,7 +7,6 @@ class BrownianMotion:
 
     Public Attributes:
         - position: The net change of all steps from origin 0.0
-        - h_step: How much height changes for each time_step taken
         - time_step: How much time it takes for each step
         - path: A history of all positions, right-most being current position
 
@@ -18,14 +15,12 @@ class BrownianMotion:
     """
 
     position: tuple[float, float]
-    h_step: float
-    time_step: float
+    dt: float
     path: list[tuple[float, float]]
     steps_taken = int
 
     def __init__(
         self,
-        h_step: float,
         time_step: float,
         mu: float = 0,
         sigma: float = 1,
@@ -33,12 +28,11 @@ class BrownianMotion:
         """Create a new BrownianMotion.
 
         Preconditions:
-            - h_step > 0
+            - time > 0
             - time_step > 0
         """
         self.position = 0.0, 0.0
-        self.h_step = h_step
-        self.time_step = time_step
+        self.dt = time_step
         self.path = [(0, 0)]
         self.mu = mu
         self.sigma = sigma
@@ -48,25 +42,40 @@ class BrownianMotion:
         """Move one time_step forward"""
 
         random_shock = np.random.normal(self.mu, self.sigma)
-        drift = self.mu * self.time_step
-        noise = self.sigma * (self.time_step ** (1 / 2)) * random_shock
+        drift = self.mu * self.dt
+        noise = self.sigma * (self.dt ** (1 / 2)) * random_shock
         step = drift + noise
 
-        new_pos = (self.position[0] + self.time_step), (self.position[1] + step)
+        new_pos = (self.position[0] + self.dt), (self.position[1] + step)
         self.position = new_pos
         self.path.append(new_pos)
         self.steps_taken += 1
 
     def run(self, n: int) -> None:
-        """Move <n> unit-times forward"""
+        """Take <n> many steps forward."""
         for i in range(n):
             self.step()
+
+    def simulate(self, time: float = 1, n: int = 1) -> np.ndarray[tuple[int]]:
+        """Stimulate this BrownianMotion for <time> duration for
+        <n> many paths"""
+
+        steps = int(time // self.dt)
+        paths = np.zeros(n, steps)
+        paths[0] = 1
+
+        for t in range(steps):
+            z = np.random.normal(0, 1, paths)
+            drift = self.mu * self.dt
+            noise_t = self.sigma * (self.dt ** (1 / 2)) * z[t]
+            paths[t] = drift + noise_t
+        return paths
 
     def expectation(self) -> float:
         """Return the expected final height given
         len(self.steps) steps were taken."""
 
-        time_passed = self.steps_taken * self.time_step
+        time_passed = self.steps_taken * self.dt
         return self.mu * time_passed
 
     def expt_confidence_interval(self) -> tuple[float, float]:
@@ -111,15 +120,11 @@ class BrownianMotion:
         to have an idea where this BrownianMotion will lie.
         """
         x1 = [item[0] for item in self.path]
-        time_passed = self.steps_taken * self.time_step
+        time_passed = self.steps_taken * self.dt
         y2 = [time_passed ** (1 / 2) for i in range(self.steps_taken)]
         y3 = [-(time_passed ** (1 / 2)) for i in range(self.steps_taken)]
         plt.plot(x1[:-1], y2, c="#FF0000", label="Root(t)")
         plt.plot(x1[:-1], y3, c="#FF0000")
-
-    def visualize_variance_std(self) -> None:
-        """Add var and std to the legend."""
-        raise NotImplementedError
 
     def value_at_risk(self) -> float:
         """Return the Value-At-Risk (VaR) of this BrownianMotion"""
@@ -128,7 +133,7 @@ class BrownianMotion:
 
 def copy_bm(bm: BrownianMotion) -> BrownianMotion:
     """Return a copy of this BrownianMotion."""
-    new_bm = BrownianMotion(bm.h_step, bm.time_step)
+    new_bm = BrownianMotion(bm.dt)
     new_bm.path = bm.path[:]
     new_bm.steps_taken = bm.steps_taken
     new_bm.mu = bm.mu
@@ -221,39 +226,6 @@ def get_expected_shortfall(matrix: list[list[tuple[float, float]]]) -> float:
             total += end
             i += 1
     return round(total / i, 4)
-
-
-class GBrownianMotion(BrownianMotion):
-
-    def __init__(
-        self,
-        h_step: float,
-        time_step: float,
-        mu: float = 0,
-        sigma: float = 1,
-    ) -> None:
-        """Create a new BrownianMotion.
-
-        Preconditions:
-            - h_step > 0
-            - time_step > 0
-        """
-        super().__init__(h_step, time_step, mu, sigma)
-        self.position = 0, 1
-
-    def step(self) -> None:
-        """Move one time_step forward"""
-
-        shock = np.random.normal(self.mu, self.sigma)
-        noise = self.sigma * (self.time_step ** (1 / 2)) * shock
-        step_factor = math.exp(
-            (self.mu - (1 / 2) * (self.sigma**2)) * self.time_step + noise
-        )
-
-        new_pos = (self.position[0] + self.time_step), (self.position[1] * step_factor)
-        self.position = new_pos
-        self.path.append(new_pos)
-        self.steps_taken += 1
 
 
 if __name__ == "__main__":
