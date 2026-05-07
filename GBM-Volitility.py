@@ -105,7 +105,7 @@ def get_implied_vol(returns: ndarray, K: float, r: float, T: float) -> float:
     model_call_prices = K * np.exp(d1 * vol * np.sqrt(T) - (r + 0.5 * vol**2) * T)
     dp = np.abs(call_prices - model_call_prices)
 
-    iv = min(vol[dp < (10 ** (-5))])
+    iv = float(vol[np.argmin(dp)])
     return round(iv, 4)
 
 
