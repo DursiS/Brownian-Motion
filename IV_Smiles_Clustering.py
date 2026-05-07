@@ -103,6 +103,25 @@ def plot_iv_smile(ticker: str) -> None:
     plt.show()
 
 
+def plot_vol_cluster(ticker: str, period: int = 20) -> None:
+    """Plot Rolling Volatility of <period> of time against
+    returns means of <ticker>
+
+    Precondition: <ticker> is a valid stock ticker.
+    """
+    returns = get_returns(ticker)
+    rolling_stds = np.array(
+        [np.std(returns[i : i + period]) for i in range(len(returns) - period + 1)]
+    )
+    return_means = np.array(
+        [np.mean(returns[i : i + period]) for i in range(len(returns) - period + 1)]
+    )
+    plt.scatter(return_means, rolling_stds)
+    plt.xlabel(f"Mean Returns for that {period} day period")
+    plt.ylabel("Realized Volatility")
+    plt.show()
+
+
 if __name__ == "__main__":
     tick = "SPY"
 
@@ -116,5 +135,8 @@ if __name__ == "__main__":
         var_95, es = compute_risk(returns)
         print(f"VaR: {var_95}, ES: {es}")
 
-    if True:
+    if False:
         plot_iv_smile("SPY")
+
+    if True:
+        plot_vol_cluster("SPY")
