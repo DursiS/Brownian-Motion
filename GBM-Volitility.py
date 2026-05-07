@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import scipy
 from numpy import ndarray, dtype, float64
 
 import math
@@ -71,7 +70,7 @@ def get_realized_vol(returns: ndarray) -> float:
     return round(rv, 4)
 
 
-def get_price_call(returns: ndarray, K: float, r: float, T: float) -> float:
+def get_call_price(returns: ndarray, K: float, r: float, T: float) -> float:
     """Return the expected value of a call of strike <K>,
     given risk-free interest rate <r> and time <T>.
     """
@@ -102,10 +101,11 @@ def get_implied_vol(returns: ndarray, K: float, r: float, T: float) -> float:
     d1 = np.array(list(d1))
     vol = np.linspace((realized_vol * 0.8), (realized_vol * 1.2), 250)
 
-    model_prices = K * np.exp(d1 * vol * np.sqrt(T) - (r + 0.5 * vol**2) * T)
-    dp = np.array(returns[1:]) - model_prices
+    call_prices = get_call_price(returns, K, r, T)
+    model_call_prices = K * np.exp(d1 * vol * np.sqrt(T) - (r + 0.5 * vol**2) * T)
+    dp = np.abs(call_prices - model_call_prices)
 
-    iv = min(vol[np.abs(dp) < 0.1])
+    iv = min(vol[dp < (10 ** (-5))])
     return round(iv, 4)
 
 
