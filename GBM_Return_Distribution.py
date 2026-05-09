@@ -1,10 +1,8 @@
 import matplotlib.pyplot as plt
 from numpy import ndarray, dtype, float64
 
-import math
 from BM import BrownianMotion
 import numpy as np
-import yfinance as yf
 
 
 class GBrownianMotion(BrownianMotion):
@@ -42,71 +40,6 @@ class GBrownianMotion(BrownianMotion):
 
                 paths[i, j] = paths[i - 1, j] * step_factor
         return paths
-
-
-def compute_risk(data: ndarray) -> tuple[float, float]:
-    """Return the VaR and ES of paths in <data>"""
-    pnl = data[-1]
-    losses = -pnl
-    var_95 = np.percentile(losses, 95)
-    es = losses.mean()
-
-    return var_95, es
-
-
-def get_returns(ticker: str) -> ndarray:
-    """Return the annual returns of <ticker>
-
-    Precondition: <ticker> is a valid Stock Ticker
-    """
-    data = yf.download(ticker, period="1y")
-    prices = data["Close"].iloc[:, 0]
-    return np.log(prices / prices.shift(1))
-
-
-def get_realized_vol(returns: ndarray) -> float:
-    """Return the annual standard deviation of <ticker>"""
-    rv = np.std(returns) * np.sqrt(252)
-    return round(rv, 4)
-
-
-def get_call_price(returns: ndarray, K: float, r: float, T: float) -> float:
-    """Return the expected value of a call of strike <K>,
-    given risk-free interest rate <r> and time <T>.
-    """
-    payoffs = np.maximum(returns - K, 0)
-    return np.mean(payoffs) * np.exp(-r * T)
-
-
-def black_scholes_d1(S: float, K: float, T: float, r: float, sigma: float) -> float:
-    """
-    S: current stock price
-    K: strike price
-    T: time to expiry in years
-    r: risk-free interest rate
-    sigma: volatility
-    """
-    d1 = (math.log(max(S / K, 0.0000001)) + (r + 0.5 * sigma**2) * T) / (
-        sigma * math.sqrt(T)
-    )
-    return d1
-
-
-def get_implied_vol(returns: ndarray, K: float, r: float, T: float) -> float:
-    """Return the implied volatility sigma,
-    such that ModelPrice(sigma) = ObservedPrice."""
-
-    realized_vol = get_realized_vol(returns)
-    d1 = np.array([black_scholes_d1(S, K, T, r, realized_vol) for S in returns[1:]])
-    d1 = np.array(list(d1))
-    vol = np.linspace((realized_vol * 0.8), (realized_vol * 1.2), 250)
-
-    call_prices = get_call_price(returns, K, r, T)
-    model_call_prices = K * np.exp(d1 * vol * np.sqrt(T) - (r + 0.5 * vol**2) * T)
-    dp = np.abs(call_prices - model_call_prices)
-
-    iv = float(vol[np.argmin(dp)])
-    return round(iv, 4)
 
 
 if __name__ == "__main__":

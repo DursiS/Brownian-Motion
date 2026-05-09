@@ -141,29 +141,6 @@ def copy_bm(bm: BrownianMotion) -> BrownianMotion:
     return new_bm
 
 
-# def estimate_probability(bm: BrownianMotion) -> float:
-#     """Return the realized probability of stepping up."""
-#     total = 0
-#     for point in bm.path:
-#         if point[1] > 0:
-#             total += 1
-#     return total / len(bm.path)
-#
-#
-# def p_confidence_interval(m: int, n: int, dt: float, dz: float) -> tuple[float, float]:
-#     """Return an interval in which the True/Theoretical
-#     probability of stepping up is almost surely to be.
-#     By doing <k> Monte Carlo Simulations to approximate p.
-#     Each Simulation
-#     Which by LLN itself and it's variance convergences for large n."""
-#
-#     matrix = get_path_matrix(m, n, dt, dz)
-#     total = 0
-#     for bm in matrix:
-#         total += estimate_probability(bm)
-#     average = total / len(matrix)
-
-
 def get_average_point(
     i: int, matrix: list[list[tuple[float, float]]]
 ) -> tuple[float, float]:
